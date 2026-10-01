@@ -6,7 +6,7 @@ import { Modal } from '@/components/Modal';
 import { Field, TextInput, TextArea, Select, Button } from '@/components/Form';
 import { formatCOP, formatDimension } from '@/lib/format';
 import { calculateStats } from '@/lib/calculations';
-import { ExternalLink, ArrowRight, Ruler, Plus, Pencil, Trash2, DollarSign, LayoutGrid } from 'lucide-react';
+import { ExternalLink, ArrowRight, Ruler, Plus, Trash2, DollarSign, LayoutGrid, Building2, FolderTree } from 'lucide-react';
 import { useEditMode } from '@/hooks/useEditMode';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { CompetitorAvatar } from '@/components/Logo';
@@ -30,7 +30,7 @@ export function Products({ selectedPeriodId }: ProductsProps) {
   const editMode = useEditMode();
 
   const refresh = useCallback(() => {
-    let query = supabase.from('products').select(`*, competitors (id, name, is_madesa), categories (id, name)`).order('name');
+    let query = supabase.from('products').select(`*, competitors (id, name, logo_url, is_madesa), categories (id, name)`).order('name');
     if (filterCompetitor !== 'all') query = query.eq('competitor_id', filterCompetitor);
     if (filterCategory !== 'all') query = query.eq('category_id', filterCategory);
     query.then(({ data }) => setProducts((data || []) as unknown as typeof products));
@@ -80,7 +80,7 @@ export function Products({ selectedPeriodId }: ProductsProps) {
   return (
     <>
       <div className="p-6 space-y-5 animate-fade-in">
-        {/* Competitor filter chips */
+        {/* Competitor filter chips */}
         <div className="space-y-2.5">
           <div className="flex items-center gap-2">
             <Building2 size={14} className="text-gray-400" />
@@ -93,7 +93,7 @@ export function Products({ selectedPeriodId }: ProductsProps) {
                 filterCompetitor === 'all'
                   ? 'bg-gray-900 text-white shadow-sm'
                   : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:shadow-sm'
-              }`
+              }`}
             >
               <LayoutGrid size={16} />
               Todos
@@ -123,7 +123,7 @@ export function Products({ selectedPeriodId }: ProductsProps) {
           </div>
         </div>
 
-        {/* Category filter chips */
+        {/* Category filter chips */}
         <div className="space-y-2.5">
           <div className="flex items-center gap-2">
             <FolderTree size={14} className="text-gray-400" />
@@ -136,7 +136,7 @@ export function Products({ selectedPeriodId }: ProductsProps) {
                 filterCategory === 'all'
                   ? 'bg-gray-900 text-white shadow-sm'
                   : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:shadow-sm'
-              }`
+              }`}
             >
               <LayoutGrid size={16} />
               Todas
@@ -152,7 +152,7 @@ export function Products({ selectedPeriodId }: ProductsProps) {
                     active
                       ? 'bg-gray-900 text-white shadow-sm'
                       : 'bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:shadow-sm'
-                  }`
+                  }`}
                 >
                   <Icon size={16} />
                   {cat.name}
