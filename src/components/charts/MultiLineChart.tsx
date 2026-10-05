@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { hexToRgba } from '@/lib/colors';
 
 interface LineChartProps {
-  data: { label: string; values: { name: string; value: number; color: string }[] }[];
+  data: { label: string; values?: { name: string; value: number; color: string }[] }[];
   formatValue?: (v: number) => string;
   height?: number;
 }
@@ -19,8 +19,15 @@ export function MultiLineChart({ data, formatValue, height = 280 }: LineChartPro
     );
   }
 
-  const seriesNames = Array.from(new Set(data.flatMap((d) => d.values.map((v) => v.name))));
-  const allValues = data.flatMap((d) => d.values.map((v) => v.value));
+  const seriesNames = Array.from(new Set(data.flatMap((d) => (d.values || []).map((v) => v.name))));
+  const allValues = data.flatMap((d) => (d.values || []).map((v) => v.value));
+  if (allValues.length === 0) {
+    return (
+      <div className="flex items-center justify-center text-sm text-gray-400" style={{ height }}>
+        Sin datos para mostrar
+      </div>
+    );
+  }
   const maxVal = Math.max(...allValues, 1);
   const minVal = Math.min(...allValues, 0);
   const range = maxVal - minVal || 1;
@@ -71,7 +78,7 @@ export function MultiLineChart({ data, formatValue, height = 280 }: LineChartPro
           {/* Gradient defs */}
           <defs>
             {seriesNames.map((name, si) => {
-              const color = data.flatMap((d) => d.values).find((v) => v.name === name)?.color || '#999';
+              const color = data.flatMap((d) => d.values || []).find((v) => v.name === name)?.color || '#999';
               return (
                 <linearGradient key={name} id={`grad-${si}`} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={hexToRgba(color, 0.18)} />
@@ -97,7 +104,7 @@ export function MultiLineChart({ data, formatValue, height = 280 }: LineChartPro
           {/* Area + Lines */}
           {seriesNames.map((name, si) => {
             const color = data.flatMap((d) => d.values).find((v) => v.name === name)?.color || '#999';
-            const seriesValues = data.map((d) => d.values.find((v) => v.name === name));
+            const seriesValues = data.map((d) => (d.values || []).find((v) => v.name === name));
             const linePath = getSmoothPath(seriesValues);
             const hasMissingValues = seriesValues.some((value) => !value);
             const areaPath = hasMissingValues
@@ -152,7 +159,7 @@ export function MultiLineChart({ data, formatValue, height = 280 }: LineChartPro
           {hoveredPoint &&
             (() => {
               const d = data[hoveredPoint.point];
-              const v = d?.values.find((value) => value.name === seriesNames[hoveredPoint.series]);
+              const v = d?.values?.find((value) => value.name === seriesNames[hoveredPoint.series]);
               if (!v) return null;
               const p = getPoint(v.value, hoveredPoint.point);
               return (

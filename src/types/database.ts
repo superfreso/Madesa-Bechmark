@@ -29,6 +29,7 @@ export interface Product {
   width_cm: number | null;
   height_cm: number | null;
   depth_cm: number | null;
+  weight_kg: number | null;
   material: string | null;
   num_doors: number | null;
   num_drawers: number | null;

@@ -6,7 +6,7 @@ import { Modal } from '@/components/Modal';
 import { Field, TextInput, TextArea, Select, Button } from '@/components/Form';
 import { formatCOP, formatDimension } from '@/lib/format';
 import { calculateStats } from '@/lib/calculations';
-import { ExternalLink, ArrowRight, Ruler, Plus, Trash2, DollarSign, LayoutGrid, Building2, FolderTree } from 'lucide-react';
+import { ExternalLink, ArrowRight, Ruler, Plus, Pencil, Trash2, DollarSign, LayoutGrid, Building2, FolderTree } from 'lucide-react';
 import { useEditMode } from '@/hooks/useEditMode';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { CompetitorAvatar } from '@/components/Logo';
@@ -176,6 +176,7 @@ export function Products({ selectedPeriodId }: ProductsProps) {
           {products.map((p) => {
             const prices = priceRecords[p.id] || [];
             const latest = prices[0];
+            const pricePerKg = latest && p.weight_kg ? (latest.promo_price || latest.normal_price) / p.weight_kg : null;
             return (
               <div key={p.id} className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md hover:border-gray-300 transition-all group">
                 <div className="flex items-start justify-between">
@@ -190,12 +191,18 @@ export function Products({ selectedPeriodId }: ProductsProps) {
                   </button>
                   <div className="flex items-center gap-1 shrink-0">
                     {p.competitors?.is_madesa && <span className="text-xs font-semibold text-madesa-600 bg-madesa-50 px-2 py-0.5 rounded">Madesa</span>}
-                    {editMode && <button onClick={() => setDeleteTarget(p)} className="text-gray-300 hover:text-red-600 p-1"><Trash2 size={14} /></button>}
+                    {editMode && (
+                      <>
+                        <button onClick={() => { setEditing(p); setShowForm(true); }} className="text-gray-300 hover:text-gray-600 p-1" aria-label="Editar producto"><Pencil size={14} /></button>
+                        <button onClick={() => setDeleteTarget(p)} className="text-gray-300 hover:text-red-600 p-1" aria-label="Eliminar producto"><Trash2 size={14} /></button>
+                      </>
+                    )}
                   </div>
                 </div>
                 <button onClick={() => setSelectedProductId(p.id)} className="block w-full text-left">
                   <div className="mt-3 flex items-center gap-3 text-xs text-gray-400">
                     {p.width_cm && <span className="flex items-center gap-1"><Ruler size={12} /> {p.width_cm}×{p.height_cm}×{p.depth_cm}cm</span>}
+                    {p.weight_kg && <span>{p.weight_kg} kg</span>}
                     {p.material && <span>{p.material}</span>}
                   </div>
                   <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
@@ -233,6 +240,7 @@ function ProductFormModal({ open, onClose, editing, competitors, categories, onS
   const [width, setWidth] = useState('');
   const [height, setHeight] = useState('');
   const [depth, setDepth] = useState('');
+  const [weightKg, setWeightKg] = useState('');
   const [material, setMaterial] = useState('');
   const [numDoors, setNumDoors] = useState('');
   const [numDrawers, setNumDrawers] = useState('');
@@ -246,11 +254,11 @@ function ProductFormModal({ open, onClose, editing, competitors, categories, onS
       setName(editing.name); setCompetitorId(editing.competitor_id); setCategoryId(editing.category_id);
       setSku(editing.sku || ''); setProductUrl(editing.product_url || ''); setDescription(editing.description || '');
       setWidth(editing.width_cm?.toString() || ''); setHeight(editing.height_cm?.toString() || ''); setDepth(editing.depth_cm?.toString() || '');
-      setMaterial(editing.material || ''); setNumDoors(editing.num_doors?.toString() || ''); setNumDrawers(editing.num_drawers?.toString() || '');
+      setWeightKg(editing.weight_kg?.toString() || ''); setMaterial(editing.material || ''); setNumDoors(editing.num_doors?.toString() || ''); setNumDrawers(editing.num_drawers?.toString() || '');
       setCapacitySeats(editing.capacity_seats?.toString() || ''); setFeatures(editing.features || '');
     } else {
       setName(''); setCompetitorId(''); setCategoryId(''); setSku(''); setProductUrl(''); setDescription('');
-      setWidth(''); setHeight(''); setDepth(''); setMaterial(''); setNumDoors(''); setNumDrawers(''); setCapacitySeats(''); setFeatures('');
+      setWidth(''); setHeight(''); setDepth(''); setWeightKg(''); setMaterial(''); setNumDoors(''); setNumDrawers(''); setCapacitySeats(''); setFeatures('');
     }
     setError(null);
   }, [editing, open]);
@@ -259,12 +267,13 @@ function ProductFormModal({ open, onClose, editing, competitors, categories, onS
     if (!name.trim()) { setError('El nombre es obligatorio'); return; }
     if (!competitorId) { setError('Selecciona un competidor'); return; }
     if (!categoryId) { setError('Selecciona una categoría'); return; }
+    if (weightKg && (!Number.isFinite(Number(weightKg)) || Number(weightKg) <= 0)) { setError('El peso debe ser mayor que cero'); return; }
     setSaving(true);
     const payload = {
       name: name.trim(), competitor_id: competitorId, category_id: categoryId, sku: sku || null,
       product_url: productUrl || null, description: description || null,
       width_cm: width ? parseFloat(width) : null, height_cm: height ? parseFloat(height) : null, depth_cm: depth ? parseFloat(depth) : null,
-      material: material || null, num_doors: numDoors ? parseInt(numDoors) : null, num_drawers: numDrawers ? parseInt(numDrawers) : null,
+      weight_kg: weightKg ? parseFloat(weightKg) : null, material: material || null, num_doors: numDoors ? parseInt(numDoors) : null, num_drawers: numDrawers ? parseInt(numDrawers) : null,
       capacity_seats: capacitySeats ? parseInt(capacitySeats) : null, features: features || null,
     };
     const { error: err } = editing ? await supabase.from('products').update(payload).eq('id', editing.id) : await supabase.from('products').insert(payload);
@@ -286,6 +295,7 @@ function ProductFormModal({ open, onClose, editing, competitors, categories, onS
         <Field label="Ancho (cm)"><TextInput type="number" value={width} onChange={(e) => setWidth(e.target.value)} /></Field>
         <Field label="Alto (cm)"><TextInput type="number" value={height} onChange={(e) => setHeight(e.target.value)} /></Field>
         <Field label="Profundidad (cm)"><TextInput type="number" value={depth} onChange={(e) => setDepth(e.target.value)} /></Field>
+        <Field label="Peso (kg)"><TextInput type="number" min="0" step="0.01" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} placeholder="Ej: 42.5" /></Field>
         <Field label="Material"><TextInput value={material} onChange={(e) => setMaterial(e.target.value)} placeholder="MDF melamina" /></Field>
         <Field label="Número de puertas"><TextInput type="number" value={numDoors} onChange={(e) => setNumDoors(e.target.value)} /></Field>
         <Field label="Número de cajones"><TextInput type="number" value={numDrawers} onChange={(e) => setNumDrawers(e.target.value)} /></Field>
@@ -346,6 +356,8 @@ function ProductDetail({ product, priceHistory, onBack, selectedPeriodId }: {
         <SpecCard label="Ancho" value={formatDimension(product.width_cm)} />
         <SpecCard label="Alto" value={formatDimension(product.height_cm)} />
         <SpecCard label="Profundidad" value={formatDimension(product.depth_cm)} />
+        <SpecCard label="Peso" value={product.weight_kg ? `${product.weight_kg} kg` : '—'} />
+        <SpecCard label="Precio/kg" value={product.weight_kg && lastPrice ? formatCOP(Math.round((lastPrice.promo_price || lastPrice.normal_price) / product.weight_kg)) : '—'} />
         <SpecCard label="Material" value={product.material || '—'} />
         <SpecCard label="Puertas" value={product.num_doors?.toString() || '—'} />
         <SpecCard label="Cajones" value={product.num_drawers?.toString() || '—'} />

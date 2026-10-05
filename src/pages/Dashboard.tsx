@@ -31,7 +31,7 @@ export function Dashboard({ selectedPeriodId, onNavigateCompetitor }: DashboardP
       .select(`
         *,
         products (
-          id, name, sku, competitor_id, category_id,
+          id, name, sku, competitor_id, category_id, weight_kg,
           competitors (id, name, is_madesa),
           categories (id, name)
         )
@@ -97,6 +97,26 @@ export function Dashboard({ selectedPeriodId, onNavigateCompetitor }: DashboardP
         highlight: s.competitor.is_madesa,
       }));
   }, [competitorStats, competitorColorMap]);
+
+  const pricePerKgData = useMemo(() => {
+    const map = new Map<string, { competitor: Competitor; values: number[] }>();
+    for (const record of filteredRecords) {
+      const product = record.products;
+      const competitor = product?.competitors;
+      const weight = product?.weight_kg;
+      if (!competitor || !weight || weight <= 0) continue;
+      if (!map.has(competitor.id)) map.set(competitor.id, { competitor, values: [] });
+      map.get(competitor.id)!.values.push((record.promo_price || record.normal_price) / weight);
+    }
+    return Array.from(map.values())
+      .map(({ competitor, values }) => ({
+        label: competitor.name,
+        value: Math.round(calculateStats(values).avg),
+        color: competitorColorMap.get(competitor.id),
+        highlight: competitor.is_madesa,
+      }))
+      .sort((a, b) => a.value - b.value);
+  }, [filteredRecords, competitorColorMap]);
 
   // Evolution data across all periods
   const [evolutionData, setEvolutionData] = useState<{ label: string; values: { name: string; value: number; color: string }[] }[]>([]);
@@ -252,6 +272,24 @@ export function Dashboard({ selectedPeriodId, onNavigateCompetitor }: DashboardP
           />
         </Card>
       </div>
+
+      <Card title="Precio promedio por kilogramo" subtitle={`${selectedPeriod?.name || ''} · Solo muebles con peso registrado`}>
+        {pricePerKgData.length > 0 ? (
+          <SimpleBarChart
+            data={pricePerKgData}
+            formatValue={(v) => `${formatCOP(v)} / kg`}
+            onBarClick={(index) => {
+              const entry = pricePerKgData[index];
+              const comp = competitors.find((item) => item.name === entry.label);
+              if (comp && onNavigateCompetitor) onNavigateCompetitor(comp.id);
+            }}
+          />
+        ) : (
+          <div className="flex items-center justify-center text-sm text-gray-400" style={{ height: 210 }}>
+            Agrega el peso de los productos para ver esta estadística
+          </div>
+        )}
+      </Card>
 
       {/* Charts row 2: Evolution */}
       <Card title="Evolución del precio promedio" subtitle="Todos los períodos registrados">
