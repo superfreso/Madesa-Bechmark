@@ -5,8 +5,18 @@ export interface Competitor {
   website: string | null;
   country: string;
   description: string | null;
+  founded_year: number | null;
   is_active: boolean;
   is_madesa: boolean;
+  created_at: string;
+}
+
+export interface CompetitorCountry {
+  id: string;
+  competitor_id: string;
+  country_code: string;
+  country_name: string;
+  years_operating: number | null;
   created_at: string;
 }
 

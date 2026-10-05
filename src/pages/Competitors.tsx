@@ -8,9 +8,9 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Field, TextInput, TextArea, Select, Button } from '@/components/Form';
 import { formatCOP } from '@/lib/format';
 import { calculateStats } from '@/lib/calculations';
-import { ExternalLink, ArrowRight, Globe, Shield, Truck, Wrench as WrenchIcon, CreditCard, Plus, Pencil, Trash2, Upload } from 'lucide-react';
+import { ExternalLink, ArrowRight, Globe, Shield, Truck, Wrench as WrenchIcon, CreditCard, Plus, Pencil, Trash2, Upload, Calendar, Flag } from 'lucide-react';
 import { useEditMode } from '@/hooks/useEditMode';
-import type { PriceRecord, Product, CommercialCondition, PaymentMethod, TrafficRecord, Competitor, Category, AnalysisPeriod } from '@/types/database';
+import type { PriceRecord, Product, CommercialCondition, PaymentMethod, TrafficRecord, Competitor, Category, AnalysisPeriod, CompetitorCountry } from '@/types/database';
 
 interface CompetitorsProps {
   selectedPeriodId: string | null;
@@ -201,6 +201,7 @@ function CompetitorFormModal({ open, onClose, editing, onSaved }: {
   const [website, setWebsite] = useState('');
   const [country, setCountry] = useState('Colombia');
   const [description, setDescription] = useState('');
+  const [foundedYear, setFoundedYear] = useState('');
   const [isMadesa, setIsMadesa] = useState(false);
   const [isActive, setIsActive] = useState(true);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
@@ -214,11 +215,12 @@ function CompetitorFormModal({ open, onClose, editing, onSaved }: {
       setWebsite(editing.website || '');
       setCountry(editing.country);
       setDescription(editing.description || '');
+      setFoundedYear(editing.founded_year?.toString() || '');
       setIsMadesa(editing.is_madesa);
       setIsActive(editing.is_active);
       setLogoUrl(editing.logo_url);
     } else {
-      setName(''); setWebsite(''); setCountry('Colombia'); setDescription(''); setIsMadesa(false); setIsActive(true); setLogoUrl(null);
+      setName(''); setWebsite(''); setCountry('Colombia'); setDescription(''); setFoundedYear(''); setIsMadesa(false); setIsActive(true); setLogoUrl(null);
     }
     setError(null);
   }, [editing, open]);
@@ -241,7 +243,7 @@ function CompetitorFormModal({ open, onClose, editing, onSaved }: {
   async function save() {
     if (!name.trim()) { setError('El nombre es obligatorio'); return; }
     setSaving(true);
-    const payload = { name: name.trim(), website: website || null, country, description: description || null, is_madesa: isMadesa, is_active: isActive, logo_url: logoUrl };
+    const payload = { name: name.trim(), website: website || null, country, description: description || null, founded_year: foundedYear ? parseInt(foundedYear) : null, is_madesa: isMadesa, is_active: isActive, logo_url: logoUrl };
     const { error: err } = editing
       ? await supabase.from('competitors').update(payload).eq('id', editing.id)
       : await supabase.from('competitors').insert(payload);
@@ -281,6 +283,7 @@ function CompetitorFormModal({ open, onClose, editing, onSaved }: {
         <Field label="Nombre"><TextInput value={name} onChange={(e) => setName(e.target.value)} placeholder="Ej: Jamar" /></Field>
         <Field label="Sitio web"><TextInput value={website} onChange={(e) => setWebsite(e.target.value)} placeholder="https://..." /></Field>
         <Field label="País"><TextInput value={country} onChange={(e) => setCountry(e.target.value)} /></Field>
+        <Field label="Año de fundación"><TextInput type="number" value={foundedYear} onChange={(e) => setFoundedYear(e.target.value)} placeholder="Ej: 1975" /></Field>
         <Field label="Descripción"><TextArea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} placeholder="Breve descripción del competidor" /></Field>
         <div className="flex gap-6">
           <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
@@ -311,6 +314,9 @@ function CompetitorDetail({ competitorId, onBack, selectedPeriodId, allCompetito
   const [conditions, setConditions] = useState<CommercialCondition[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [traffic, setTraffic] = useState<TrafficRecord[]>([]);
+  const [countries, setCountries] = useState<CompetitorCountry[]>([]);
+  const [showCountryForm, setShowCountryForm] = useState(false);
+  const editMode = useEditMode();
 
   useEffect(() => {
     if (!competitorId) return;
@@ -334,7 +340,18 @@ function CompetitorDetail({ competitorId, onBack, selectedPeriodId, allCompetito
       .then(({ data }) => setPaymentMethods(data || []));
     supabase.from('traffic_records').select('*').eq('competitor_id', competitorId).eq('period_id', selectedPeriodId)
       .then(({ data }) => setTraffic(data || []));
+    refreshCountries(competitorId);
   }, [competitorId, selectedPeriodId]);
+
+  function refreshCountries(cid: string) {
+    supabase.from('competitor_countries').select('*').eq('competitor_id', cid).order('country_name')
+      .then(({ data }) => setCountries(data || []));
+  }
+
+  async function deleteCountry(id: string) {
+    await supabase.from('competitor_countries').delete().eq('id', id);
+    refreshCountries(competitorId);
+  }
 
   if (!competitor) return null;
 
@@ -361,12 +378,22 @@ function CompetitorDetail({ competitorId, onBack, selectedPeriodId, allCompetito
           )}
           <p className="text-sm text-gray-500 mt-2">{competitor.description}</p>
         </div>
-        <div className="text-right shrink-0">
-          <p className="text-xs text-gray-400">Precio promedio histórico</p>
-          <p className="font-display font-bold text-2xl text-gray-900">{formatCOP(Math.round(stats.avg))}</p>
-          <p className="text-xs text-gray-400">{stats.count} registros</p>
+        <div className="text-right shrink-0 space-y-2">
+          <div>
+            <p className="text-xs text-gray-400">Precio promedio histórico</p>
+            <p className="font-display font-bold text-2xl text-gray-900">{formatCOP(Math.round(stats.avg))}</p>
+            <p className="text-xs text-gray-400">{stats.count} registros</p>
+          </div>
+          {competitor.founded_year && (
+            <div className="pt-2 border-t border-gray-100">
+              <p className="text-xs text-gray-400 inline-flex items-center gap-1"><Calendar size={11} /> Años en el mercado</p>
+              <p className="font-display font-bold text-lg text-gray-900">{new Date().getFullYear() - competitor.founded_year}</p>
+            </div>
+          )}
         </div>
       </div>
+      <CountriesPanel countries={countries} editMode={editMode} onAdd={() => setShowCountryForm(true)} onDelete={deleteCountry} />
+      <CountryFormModal open={showCountryForm} onClose={() => setShowCountryForm(false)} competitorId={competitorId} onSaved={() => { refreshCountries(competitorId); setShowCountryForm(false); }} />
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <ConditionCard icon={<Shield size={18} />} title="Garantía" condition={warranty} />
         <ConditionCard icon={<Truck size={18} />} title="Envío" condition={shipping} />
@@ -469,4 +496,113 @@ function ConditionCard({ icon, title, condition }: { icon: React.ReactNode; titl
       ) : <p className="text-sm text-gray-300">Sin datos registrados</p>}
     </div>
   );
+}
+
+function CountriesPanel({ countries, editMode, onAdd, onDelete }: {
+  countries: CompetitorCountry[];
+  editMode: boolean;
+  onAdd: () => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <Card title="Presencia internacional" subtitle={`${countries.length} país${countries.length !== 1 ? 'es' : ''} de operación`}>
+      <div className="flex flex-wrap gap-3">
+        {countries.length === 0 ? (
+          <p className="text-sm text-gray-300 py-2">Sin países registrados. {editMode && 'Usa el botón para agregar.'}</p>
+        ) : countries.map((c) => (
+          <div key={c.id} className="group relative">
+            <div className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 rounded-xl px-3 py-2.5 transition-colors cursor-default">
+              <span className="text-2xl">{countryFlag(c.country_code)}</span>
+              <div>
+                <p className="text-sm font-medium text-gray-900">{c.country_name}</p>
+                <p className="text-xs text-gray-400">{c.years_operating ? `${c.years_operating} año${c.years_operating !== 1 ? 's' : ''}` : 'Sin dato'}</p>
+              </div>
+              {editMode && (
+                <button onClick={() => onDelete(c.id)} className="ml-1 text-gray-300 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
+              {c.country_name} · {c.years_operating ? `${c.years_operating} año${c.years_operating !== 1 ? 's' : ''} de operación` : 'Años no registrados'}
+            </div>
+          </div>
+        ))}
+        {editMode && (
+          <button onClick={onAdd} className="flex items-center gap-1.5 border-2 border-dashed border-gray-200 hover:border-madesa-400 hover:text-madesa-600 text-gray-400 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
+            <Plus size={16} /> Agregar país
+          </button>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function CountryFormModal({ open, onClose, competitorId, onSaved }: {
+  open: boolean; onClose: () => void; competitorId: string; onSaved: () => void;
+}) {
+  const [countryCode, setCountryCode] = useState('CO');
+  const [countryName, setCountryName] = useState('Colombia');
+  const [years, setYears] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCountryCode('CO'); setCountryName('Colombia'); setYears(''); setError(null);
+  }, [open]);
+
+  const countryList = [
+    { code: 'CO', name: 'Colombia' }, { code: 'AR', name: 'Argentina' }, { code: 'MX', name: 'México' },
+    { code: 'BR', name: 'Brasil' }, { code: 'CL', name: 'Chile' }, { code: 'PE', name: 'Perú' },
+    { code: 'EC', name: 'Ecuador' }, { code: 'VE', name: 'Venezuela' }, { code: 'UY', name: 'Uruguay' },
+    { code: 'BO', name: 'Bolivia' }, { code: 'PY', name: 'Paraguay' }, { code: 'US', name: 'Estados Unidos' },
+    { code: 'ES', name: 'España' }, { code: 'PT', name: 'Portugal' }, { code: 'PA', name: 'Panamá' },
+    { code: 'CR', name: 'Costa Rica' }, { code: 'DO', name: 'Rep. Dominicana' },
+  ];
+
+  function onCodeChange(code: string) {
+    setCountryCode(code);
+    const found = countryList.find((c) => c.code === code);
+    if (found) setCountryName(found.name);
+  }
+
+  async function save() {
+    if (!countryCode) { setError('Selecciona un país'); return; }
+    setSaving(true);
+    const { error: err } = await supabase.from('competitor_countries').insert({
+      competitor_id: competitorId, country_code: countryCode, country_name: countryName,
+      years_operating: years ? parseInt(years) : null,
+    });
+    setSaving(false);
+    if (err) { setError(err.message); return; }
+    onSaved();
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Agregar país de operación"
+      footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button onClick={save} disabled={saving}>{saving ? 'Guardando...' : 'Guardar'}</Button></>}>
+      {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg">{error}</div>}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Field label="País">
+          <Select value={countryCode} onChange={(e) => onCodeChange(e.target.value)}>
+            {countryList.map((c) => <option key={c.code} value={c.code}>{countryFlag(c.code)} {c.name}</option>)}
+          </Select>
+        </Field>
+        <Field label="Años de operación en ese país">
+          <TextInput type="number" min="0" value={years} onChange={(e) => setYears(e.target.value)} placeholder="Ej: 15" />
+        </Field>
+        <Field label="Nombre del país (editable)" className="md:col-span-2">
+          <TextInput value={countryName} onChange={(e) => setCountryName(e.target.value)} />
+        </Field>
+      </div>
+      <div className="mt-4 flex items-center gap-2 text-sm text-gray-400">
+        <Flag size={14} /> Vista previa: <span className="text-2xl">{countryFlag(countryCode)}</span> {countryName} · {years || '?'} años
+      </div>
+    </Modal>
+  );
+}
+
+function countryFlag(code: string): string {
+  if (!code || code.length !== 2) return '🏴';
+  return code.toUpperCase().replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)));
 }
