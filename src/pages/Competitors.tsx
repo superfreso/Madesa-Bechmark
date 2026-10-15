@@ -542,10 +542,20 @@ function CountriesPanel({ countries, editMode, onAdd, onDelete }: {
             {countries.length > 0 ? `${byContinent.length} continentes · ${flagStrip}` : 'Sin países registrados'}
           </p>
         </div>
-        <ChevronDown
-          size={20}
-          className={`text-gray-300 shrink-0 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
-        />
+        <div className="flex items-center gap-2 shrink-0">
+          {editMode && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onAdd(); }}
+              className="flex items-center gap-1.5 text-xs font-medium text-madesa-600 bg-madesa-50 hover:bg-madesa-100 px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <Plus size={14} /> Agregar
+            </button>
+          )}
+          <ChevronDown
+            size={20}
+            className={`text-gray-300 shrink-0 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
+          />
+        </div>
       </button>
       <div className={`grid transition-all duration-300 ${expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
         <div className="overflow-hidden">
@@ -600,11 +610,6 @@ function CountriesPanel({ countries, editMode, onAdd, onDelete }: {
                     </div>
                   </div>
                 ))}
-                {editMode && (
-                  <button onClick={onAdd} className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 hover:border-madesa-400 hover:bg-madesa-50/30 hover:text-madesa-600 text-gray-400 rounded-2xl py-4 text-sm font-medium transition-all w-full">
-                    <Plus size={18} /> Agregar país
-                  </button>
-                )}
               </div>
             )}
           </div>
