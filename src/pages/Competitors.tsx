@@ -8,7 +8,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Field, TextInput, TextArea, Select, Button } from '@/components/Form';
 import { formatCOP } from '@/lib/format';
 import { calculateStats } from '@/lib/calculations';
-import { ExternalLink, ArrowRight, Globe, Shield, Truck, Wrench as WrenchIcon, CreditCard, Plus, Pencil, Trash2, Upload, Calendar, Search, X } from 'lucide-react';
+import { ExternalLink, ArrowRight, Globe, Shield, Truck, Wrench as WrenchIcon, CreditCard, Plus, Pencil, Trash2, Upload, Calendar, Search, X, ChevronDown } from 'lucide-react';
 import { useEditMode } from '@/hooks/useEditMode';
 import type { PriceRecord, Product, CommercialCondition, PaymentMethod, TrafficRecord, Competitor, Category, AnalysisPeriod, CompetitorCountry } from '@/types/database';
 import { ALL_COUNTRIES, countryFlagEmoji, searchCountries, findCountryByCode } from '@/lib/countries';
@@ -506,53 +506,85 @@ function CountriesPanel({ countries, editMode, onAdd, onDelete }: {
   onAdd: () => void;
   onDelete: (id: string) => void;
 }) {
+  const [expanded, setExpanded] = useState(true);
+  const flagStrip = countries.slice(0, 8).map((c) => countryFlagEmoji(c.country_code)).join(' ');
+
   return (
-    <Card title="Presencia internacional" subtitle={`${countries.length} país${countries.length !== 1 ? 'es' : ''} de operación`}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-        {countries.length === 0 ? (
-          <div className="col-span-full py-6 text-center">
-            <Globe size={32} className="mx-auto text-gray-200 mb-2" />
-            <p className="text-sm text-gray-300">Sin países registrados{editMode ? '. Usa el botón para agregar.' : ''}</p>
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center gap-3 p-5 hover:bg-gray-50/50 transition-colors text-left"
+      >
+        <div className="w-10 h-10 rounded-xl bg-madesa-50 flex items-center justify-center shrink-0">
+          <Globe size={20} className="text-madesa-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <h3 className="font-display font-semibold text-gray-900">Presencia internacional</h3>
+            <span className="text-xs font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+              {countries.length} {countries.length === 1 ? 'país' : 'países'}
+            </span>
           </div>
-        ) : countries.map((c) => (
-          <div key={c.id} className="group relative bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-2xl p-4 hover:shadow-sm hover:border-gray-200 transition-all">
-            <div className="flex items-center gap-3">
-              <div className="relative shrink-0">
-                <div className="w-11 h-11 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-2xl shadow-sm">
-                  {countryFlagEmoji(c.country_code)}
+          <p className="text-xs text-gray-400 mt-0.5 truncate">
+            {countries.length > 0 ? flagStrip : 'Sin países registrados'}
+          </p>
+        </div>
+        <ChevronDown
+          size={20}
+          className={`text-gray-300 shrink-0 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
+        />
+      </button>
+      <div className={`grid transition-all duration-300 ${expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+        <div className="overflow-hidden">
+          <div className="px-5 pb-5 pt-1 border-t border-gray-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {countries.length === 0 ? (
+                <div className="col-span-full py-6 text-center">
+                  <Globe size={32} className="mx-auto text-gray-200 mb-2" />
+                  <p className="text-sm text-gray-300">Sin países registrados{editMode ? '. Usa el botón para agregar.' : ''}</p>
                 </div>
-                {c.years_operating != null && (
-                  <span className="absolute -bottom-1.5 -right-1.5 bg-madesa-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
-                    {c.years_operating}
-                  </span>
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-gray-900 truncate">{c.country_name}</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {c.years_operating != null
-                    ? `${c.years_operating} año${c.years_operating !== 1 ? 's' : ''} de operación`
-                    : 'Tiempo no registrado'}
-                </p>
-              </div>
+              ) : countries.map((c) => (
+                <div key={c.id} className="group relative bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-2xl p-4 hover:shadow-sm hover:border-gray-200 transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="relative shrink-0">
+                      <div className="w-11 h-11 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-2xl shadow-sm">
+                        {countryFlagEmoji(c.country_code)}
+                      </div>
+                      {c.years_operating != null && (
+                        <span className="absolute -bottom-1.5 -right-1.5 bg-madesa-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
+                          {c.years_operating}
+                        </span>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{c.country_name}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {c.years_operating != null
+                          ? `${c.years_operating} año${c.years_operating !== 1 ? 's' : ''} de operación`
+                          : 'Tiempo no registrado'}
+                      </p>
+                    </div>
+                    {editMode && (
+                      <button onClick={() => onDelete(c.id)} className="shrink-0 text-gray-200 hover:text-red-500 p-1 transition-colors" aria-label="Eliminar país">
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-10 shadow-lg">
+                    {countryFlagEmoji(c.country_code)} {c.country_name} · {c.years_operating != null ? `${c.years_operating} año${c.years_operating !== 1 ? 's' : ''}` : 'Sin registrar'}
+                  </div>
+                </div>
+              ))}
               {editMode && (
-                <button onClick={() => onDelete(c.id)} className="shrink-0 text-gray-200 hover:text-red-500 p-1 transition-colors" aria-label="Eliminar país">
-                  <Trash2 size={15} />
+                <button onClick={onAdd} className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 hover:border-madesa-400 hover:bg-madesa-50/30 hover:text-madesa-600 text-gray-400 rounded-2xl py-4 text-sm font-medium transition-all min-h-[68px]">
+                  <Plus size={18} /> Agregar país
                 </button>
               )}
             </div>
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-10 shadow-lg">
-              {countryFlagEmoji(c.country_code)} {c.country_name} · {c.years_operating != null ? `${c.years_operating} año${c.years_operating !== 1 ? 's' : ''}` : 'Sin registrar'}
-            </div>
           </div>
-        ))}
-        {editMode && (
-          <button onClick={onAdd} className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 hover:border-madesa-400 hover:bg-madesa-50/30 hover:text-madesa-600 text-gray-400 rounded-2xl py-4 text-sm font-medium transition-all min-h-[68px]">
-            <Plus size={18} /> Agregar país
-          </button>
-        )}
+        </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
