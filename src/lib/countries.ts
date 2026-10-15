@@ -246,6 +246,66 @@ export const ALL_COUNTRIES: Country[] = [
   { code: 'ZW', name: 'Zimbabue' },
 ];
 
+export type Continent = 'south_america' | 'north_america' | 'europe' | 'asia' | 'africa' | 'oceania';
+
+export const CONTINENT_LABELS: Record<Continent, string> = {
+  south_america: 'América del Sur',
+  north_america: 'América del Norte y Centro',
+  europe: 'Europa',
+  asia: 'Asia',
+  africa: 'África',
+  oceania: 'Oceanía',
+};
+
+export const CONTINENT_ORDER: Continent[] = ['south_america', 'north_america', 'europe', 'asia', 'africa', 'oceania'];
+
+const CODE_TO_CONTINENT: Record<string, Continent> = {
+  AR: 'south_america', BO: 'south_america', BR: 'south_america', CL: 'south_america',
+  CO: 'south_america', EC: 'south_america', GF: 'south_america', GY: 'south_america',
+  PY: 'south_america', PE: 'south_america', SR: 'south_america', UY: 'south_america', VE: 'south_america',
+  AI: 'north_america', AG: 'north_america', AW: 'north_america', BS: 'north_america', BB: 'north_america',
+  BZ: 'north_america', BM: 'north_america', CA: 'north_america', KY: 'north_america', CR: 'north_america',
+  CU: 'north_america', CW: 'north_america', DM: 'north_america', SV: 'north_america', GL: 'north_america',
+  GD: 'north_america', GP: 'north_america', GT: 'north_america', HT: 'north_america', HN: 'north_america',
+  JM: 'north_america', MQ: 'north_america', MX: 'north_america', MS: 'north_america', NI: 'north_america',
+  PA: 'north_america', PR: 'north_america', BL: 'north_america', KN: 'north_america', LC: 'north_america',
+  MF: 'north_america', PM: 'north_america', VC: 'north_america', SH: 'north_america', SX: 'north_america',
+  TT: 'north_america', TC: 'north_america', VI: 'north_america', VG: 'north_america', US: 'north_america',
+  DO: 'north_america',
+  AL: 'europe', AD: 'europe', AT: 'europe', BE: 'europe', BG: 'europe', BY: 'europe', BA: 'europe',
+  HR: 'europe', CY: 'europe', CZ: 'europe', DK: 'europe', EE: 'europe', FO: 'europe', FI: 'europe',
+  FR: 'europe', DE: 'europe', GI: 'europe', GR: 'europe', GG: 'europe', HU: 'europe', IS: 'europe',
+  IE: 'europe', IM: 'europe', IT: 'europe', JE: 'europe', LV: 'europe', LI: 'europe', LT: 'europe',
+  LU: 'europe', MK: 'europe', MT: 'europe', MD: 'europe', MC: 'europe', ME: 'europe', NL: 'europe',
+  NO: 'europe', PL: 'europe', PT: 'europe', RO: 'europe', RU: 'europe', SM: 'europe', RS: 'europe',
+  SK: 'europe', SI: 'europe', ES: 'europe', SJ: 'europe', SE: 'europe', CH: 'europe', UA: 'europe',
+  GB: 'europe', VA: 'europe',
+  AF: 'asia', AM: 'asia', AZ: 'asia', BH: 'asia', BD: 'asia', BT: 'asia', BN: 'asia', KH: 'asia',
+  CN: 'asia', GE: 'asia', HK: 'asia', IN: 'asia', ID: 'asia', IR: 'asia', IQ: 'asia', IL: 'asia',
+  JP: 'asia', JO: 'asia', KZ: 'asia', KP: 'asia', KR: 'asia', KW: 'asia', KG: 'asia', LA: 'asia',
+  LB: 'asia', MO: 'asia', MY: 'asia', MV: 'asia', MN: 'asia', MM: 'asia', NP: 'asia', OM: 'asia',
+  PK: 'asia', PS: 'asia', PH: 'asia', QA: 'asia', SA: 'asia', SG: 'asia', LK: 'asia', SY: 'asia',
+  TW: 'asia', TJ: 'asia', TH: 'asia', TL: 'asia', TR: 'asia', TM: 'asia', AE: 'asia', UZ: 'asia',
+  VN: 'asia', YE: 'asia',
+  DZ: 'africa', AO: 'africa', BJ: 'africa', BW: 'africa', BF: 'africa', BI: 'africa', CM: 'africa',
+  CV: 'africa', CF: 'africa', TD: 'africa', KM: 'africa', CG: 'africa', CD: 'africa', CI: 'africa',
+  DJ: 'africa', EG: 'africa', GQ: 'africa', ER: 'africa', ET: 'africa', GA: 'africa', GM: 'africa',
+  GH: 'africa', GN: 'africa', GW: 'africa', KE: 'africa', LS: 'africa', LR: 'africa', LY: 'africa',
+  MG: 'africa', MW: 'africa', ML: 'africa', MR: 'africa', MU: 'africa', YT: 'africa', MA: 'africa',
+  MZ: 'africa', NA: 'africa', NE: 'africa', NG: 'africa', RE: 'africa', RW: 'africa', SH: 'africa',
+  ST: 'africa', SN: 'africa', SC: 'africa', SL: 'africa', SO: 'africa', ZA: 'africa', SS: 'africa',
+  SD: 'africa', SZ: 'africa', TZ: 'africa', TG: 'africa', TN: 'africa', UG: 'africa', EH: 'africa',
+  ZM: 'africa', ZW: 'africa',
+  AS: 'oceania', AU: 'oceania', CC: 'oceania', CK: 'oceania', FJ: 'oceania', GU: 'oceania',
+  KI: 'oceania', MH: 'oceania', FM: 'oceania', NR: 'oceania', NC: 'oceania', NZ: 'oceania',
+  NU: 'oceania', NF: 'oceania', PW: 'oceania', PG: 'oceania', PN: 'oceania', WS: 'oceania',
+  SB: 'oceania', TK: 'oceania', TO: 'oceania', TV: 'oceania', VU: 'oceania', WF: 'oceania',
+};
+
+export function getContinent(code: string): Continent | null {
+  return CODE_TO_CONTINENT[code.toUpperCase()] || null;
+}
+
 export function countryFlagEmoji(code: string): string {
   if (!code || code.length !== 2) return '🏴';
   return code.toUpperCase().replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)));
