@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAppData } from '@/hooks/useAppData';
 import { Card } from '@/components/Card';
@@ -8,9 +8,11 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Field, TextInput, TextArea, Select, Button } from '@/components/Form';
 import { formatCOP } from '@/lib/format';
 import { calculateStats } from '@/lib/calculations';
-import { ExternalLink, ArrowRight, Globe, Shield, Truck, Wrench as WrenchIcon, CreditCard, Plus, Pencil, Trash2, Upload, Calendar, Flag } from 'lucide-react';
+import { ExternalLink, ArrowRight, Globe, Shield, Truck, Wrench as WrenchIcon, CreditCard, Plus, Pencil, Trash2, Upload, Calendar, Search, X } from 'lucide-react';
 import { useEditMode } from '@/hooks/useEditMode';
 import type { PriceRecord, Product, CommercialCondition, PaymentMethod, TrafficRecord, Competitor, Category, AnalysisPeriod, CompetitorCountry } from '@/types/database';
+import { ALL_COUNTRIES, countryFlagEmoji, searchCountries, findCountryByCode } from '@/lib/countries';
+import type { Country } from '@/lib/countries';
 
 interface CompetitorsProps {
   selectedPeriodId: string | null;
@@ -506,31 +508,47 @@ function CountriesPanel({ countries, editMode, onAdd, onDelete }: {
 }) {
   return (
     <Card title="Presencia internacional" subtitle={`${countries.length} país${countries.length !== 1 ? 'es' : ''} de operación`}>
-      <div className="flex flex-wrap gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {countries.length === 0 ? (
-          <p className="text-sm text-gray-300 py-2">Sin países registrados. {editMode && 'Usa el botón para agregar.'}</p>
+          <div className="col-span-full py-6 text-center">
+            <Globe size={32} className="mx-auto text-gray-200 mb-2" />
+            <p className="text-sm text-gray-300">Sin países registrados{editMode ? '. Usa el botón para agregar.' : ''}</p>
+          </div>
         ) : countries.map((c) => (
-          <div key={c.id} className="group relative">
-            <div className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 rounded-xl px-3 py-2.5 transition-colors cursor-default">
-              <span className="text-2xl">{countryFlag(c.country_code)}</span>
-              <div>
-                <p className="text-sm font-medium text-gray-900">{c.country_name}</p>
-                <p className="text-xs text-gray-400">{c.years_operating ? `${c.years_operating} año${c.years_operating !== 1 ? 's' : ''}` : 'Sin dato'}</p>
+          <div key={c.id} className="group relative bg-gradient-to-br from-gray-50 to-white border border-gray-100 rounded-2xl p-4 hover:shadow-sm hover:border-gray-200 transition-all">
+            <div className="flex items-center gap-3">
+              <div className="relative shrink-0">
+                <div className="w-11 h-11 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-2xl shadow-sm">
+                  {countryFlagEmoji(c.country_code)}
+                </div>
+                {c.years_operating != null && (
+                  <span className="absolute -bottom-1.5 -right-1.5 bg-madesa-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center shadow-sm">
+                    {c.years_operating}
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-gray-900 truncate">{c.country_name}</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {c.years_operating != null
+                    ? `${c.years_operating} año${c.years_operating !== 1 ? 's' : ''} de operación`
+                    : 'Tiempo no registrado'}
+                </p>
               </div>
               {editMode && (
-                <button onClick={() => onDelete(c.id)} className="ml-1 text-gray-300 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Trash2 size={14} />
+                <button onClick={() => onDelete(c.id)} className="shrink-0 text-gray-200 hover:text-red-500 p-1 transition-colors" aria-label="Eliminar país">
+                  <Trash2 size={15} />
                 </button>
               )}
             </div>
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10">
-              {c.country_name} · {c.years_operating ? `${c.years_operating} año${c.years_operating !== 1 ? 's' : ''} de operación` : 'Años no registrados'}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-10 shadow-lg">
+              {countryFlagEmoji(c.country_code)} {c.country_name} · {c.years_operating != null ? `${c.years_operating} año${c.years_operating !== 1 ? 's' : ''}` : 'Sin registrar'}
             </div>
           </div>
         ))}
         {editMode && (
-          <button onClick={onAdd} className="flex items-center gap-1.5 border-2 border-dashed border-gray-200 hover:border-madesa-400 hover:text-madesa-600 text-gray-400 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors">
-            <Plus size={16} /> Agregar país
+          <button onClick={onAdd} className="flex items-center justify-center gap-2 border-2 border-dashed border-gray-200 hover:border-madesa-400 hover:bg-madesa-50/30 hover:text-madesa-600 text-gray-400 rounded-2xl py-4 text-sm font-medium transition-all min-h-[68px]">
+            <Plus size={18} /> Agregar país
           </button>
         )}
       </div>
@@ -541,36 +559,38 @@ function CountriesPanel({ countries, editMode, onAdd, onDelete }: {
 function CountryFormModal({ open, onClose, competitorId, onSaved }: {
   open: boolean; onClose: () => void; competitorId: string; onSaved: () => void;
 }) {
-  const [countryCode, setCountryCode] = useState('CO');
-  const [countryName, setCountryName] = useState('Colombia');
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<Country | null>(null);
+  const [countryName, setCountryName] = useState('');
   const [years, setYears] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
 
   useEffect(() => {
-    setCountryCode('CO'); setCountryName('Colombia'); setYears(''); setError(null);
+    setSearch(''); setSelected(null); setCountryName(''); setYears(''); setError(null); setShowDropdown(false);
   }, [open]);
 
-  const countryList = [
-    { code: 'CO', name: 'Colombia' }, { code: 'AR', name: 'Argentina' }, { code: 'MX', name: 'México' },
-    { code: 'BR', name: 'Brasil' }, { code: 'CL', name: 'Chile' }, { code: 'PE', name: 'Perú' },
-    { code: 'EC', name: 'Ecuador' }, { code: 'VE', name: 'Venezuela' }, { code: 'UY', name: 'Uruguay' },
-    { code: 'BO', name: 'Bolivia' }, { code: 'PY', name: 'Paraguay' }, { code: 'US', name: 'Estados Unidos' },
-    { code: 'ES', name: 'España' }, { code: 'PT', name: 'Portugal' }, { code: 'PA', name: 'Panamá' },
-    { code: 'CR', name: 'Costa Rica' }, { code: 'DO', name: 'Rep. Dominicana' },
-  ];
+  const filtered = useMemo(() => searchCountries(search, 8), [search]);
 
-  function onCodeChange(code: string) {
-    setCountryCode(code);
-    const found = countryList.find((c) => c.code === code);
-    if (found) setCountryName(found.name);
+  function selectCountry(c: Country) {
+    setSelected(c);
+    setCountryName(c.name);
+    setSearch(`${countryFlagEmoji(c.code)} ${c.name}`);
+    setShowDropdown(false);
+  }
+
+  function clearSelection() {
+    setSelected(null); setCountryName(''); setSearch(''); setShowDropdown(true);
   }
 
   async function save() {
-    if (!countryCode) { setError('Selecciona un país'); return; }
+    const code = selected?.code || (search.trim() ? search.trim().toUpperCase().slice(0, 2) : '');
+    const name = countryName.trim() || selected?.name || search.trim();
+    if (!code || !name) { setError('Selecciona un país de la lista'); return; }
     setSaving(true);
     const { error: err } = await supabase.from('competitor_countries').insert({
-      competitor_id: competitorId, country_code: countryCode, country_name: countryName,
+      competitor_id: competitorId, country_code: code, country_name: name,
       years_operating: years ? parseInt(years) : null,
     });
     setSaving(false);
@@ -582,27 +602,73 @@ function CountryFormModal({ open, onClose, competitorId, onSaved }: {
     <Modal open={open} onClose={onClose} title="Agregar país de operación"
       footer={<><Button variant="secondary" onClick={onClose}>Cancelar</Button><Button onClick={save} disabled={saving}>{saving ? 'Guardando...' : 'Guardar'}</Button></>}>
       {error && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg">{error}</div>}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Field label="País">
-          <Select value={countryCode} onChange={(e) => onCodeChange(e.target.value)}>
-            {countryList.map((c) => <option key={c.code} value={c.code}>{countryFlag(c.code)} {c.name}</option>)}
-          </Select>
+      <div className="space-y-4">
+        <Field label="Buscar país">
+          <div className="relative">
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setSelected(null); setShowDropdown(true); }}
+                onFocus={() => setShowDropdown(true)}
+                placeholder="Escribe el nombre del país..."
+                className="w-full border border-gray-200 rounded-lg pl-10 pr-9 py-2.5 text-sm text-gray-900 outline-none focus:ring-2 focus:ring-madesa-500 focus:border-madesa-500 transition-all"
+              />
+              {search && (
+                <button onClick={clearSelection} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+            {showDropdown && search && (
+              <div className="absolute z-20 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+                {filtered.length === 0 ? (
+                  <div className="px-4 py-3 text-sm text-gray-300 text-center">No se encontraron países</div>
+                ) : filtered.map((c) => (
+                  <button
+                    key={c.code}
+                    onClick={() => selectCountry(c)}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <span className="text-xl shrink-0">{countryFlagEmoji(c.code)}</span>
+                    <span className="text-sm text-gray-700 flex-1">{c.name}</span>
+                    <span className="text-xs text-gray-400 font-mono">{c.code}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </Field>
+        {selected && (
+          <div className="flex items-center gap-3 bg-madesa-50/50 border border-madesa-100 rounded-xl p-3">
+            <div className="w-10 h-10 rounded-lg bg-white border border-gray-100 flex items-center justify-center text-xl shadow-sm">
+              {countryFlagEmoji(selected.code)}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-900">{selected.name}</p>
+              <p className="text-xs text-gray-400">Código: {selected.code}</p>
+            </div>
+          </div>
+        )}
+        <Field label="Nombre del país (editable)">
+          <TextInput value={countryName} onChange={(e) => setCountryName(e.target.value)} placeholder="Nombre del país" />
         </Field>
         <Field label="Años de operación en ese país">
           <TextInput type="number" min="0" value={years} onChange={(e) => setYears(e.target.value)} placeholder="Ej: 15" />
         </Field>
-        <Field label="Nombre del país (editable)" className="md:col-span-2">
-          <TextInput value={countryName} onChange={(e) => setCountryName(e.target.value)} />
-        </Field>
-      </div>
-      <div className="mt-4 flex items-center gap-2 text-sm text-gray-400">
-        <Flag size={14} /> Vista previa: <span className="text-2xl">{countryFlag(countryCode)}</span> {countryName} · {years || '?'} años
+        {selected && (
+          <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
+            <div className="w-14 h-14 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-3xl shadow-sm">
+              {countryFlagEmoji(selected.code)}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">{countryName || selected.name}</p>
+              <p className="text-xs text-gray-400 mt-0.5">{years ? `${years} año${parseInt(years) !== 1 ? 's' : ''} de operación` : 'Sin años registrados'}</p>
+            </div>
+          </div>
+        )}
       </div>
     </Modal>
   );
-}
-
-function countryFlag(code: string): string {
-  if (!code || code.length !== 2) return '🏴';
-  return code.toUpperCase().replace(/./g, (c) => String.fromCodePoint(127397 + c.charCodeAt(0)));
 }
