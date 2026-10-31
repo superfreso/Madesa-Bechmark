@@ -21,7 +21,7 @@ function App() {
   const [collapsed, setCollapsed] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [pendingCompetitorId, setPendingCompetitorId] = useState<string | null>(null);
-  const { periods, loading } = useAppData();
+  const { periods, loading, error } = useAppData();
   const [selectedPeriodId, setSelectedPeriodId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -65,6 +65,20 @@ function App() {
       case 'settings':
         return <Settings selectedPeriodId={selectedPeriodId} onPeriodChange={setSelectedPeriodId} />;
     }
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50 p-6">
+        <div className="max-w-md text-center">
+          <p className="text-base font-semibold text-gray-900">No se pudieron cargar los datos</p>
+          <p className="text-sm text-gray-500 mt-2">
+            La app no logró conectarse con la base de datos. Revisa la conexión e inténtalo de nuevo.
+          </p>
+          <p className="text-xs text-gray-400 mt-3 break-words">{error}</p>
+        </div>
+      </div>
+    );
   }
 
   if (loading) {
